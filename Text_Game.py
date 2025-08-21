@@ -1,51 +1,98 @@
-# app.py
 import streamlit as st
-from datetime import datetime
 
-st.set_page_config(page_title="Mini Text Adventure", layout="centered")
+st.set_page_config(page_title="Choice Adventure", layout="centered")
 
-# --- simple brain you can swap out ---
-def respond(user_msg: str) -> str:
-    # TODO: replace with your own logic / LLM call
-    if any(w in user_msg.lower() for w in ["exit","quit","bye"]):
-        return "You can close the tab or start a new run from the sidebar."
-    if "look" in user_msg.lower():
-        return "You see a dim corridor, a rusty door to the north, and footprints leading east."
-    if "open" in user_msg.lower():
-        return "The door creaks open. It’s dark inside. Something moves."
-    return f"(echo) {user_msg}"
+# --- Game state ---
+if "scene" not in st.session_state:
+    st.session_state.scene = "start"
 
-# --- state ---
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role":"game", "text":"Welcome to the Text Game! Type anything and I’ll respond."}
-    ]
+def go(scene):
+    st.session_state.scene = scene
 
-# --- sidebar controls ---
-with st.sidebar:
-    st.title("Controls")
-    if st.button("🔁 New Run"):
-        st.session_state.messages = [{"role":"game","text":"New run started."}]
-    st.caption(f"Time: {datetime.now().strftime('%H:%M:%S')}")
+# --- Game scenes ---
+def start():
+    st.title("🏚️ The Abandoned House")
+    st.write("You enter a dark, creaky house. A strange noise echoes in the hall...")
+    if st.button("🔦 Run away"):
+        go("run")
+    if st.button("🕵️ Hide behind furniture"):
+        go("hide")
 
-# --- chat display ---
-st.title("Mini Text Adventure")
-for m in st.session_state.messages:
-    if m["role"] == "user":
-        with st.chat_message("user"):
-            st.write(m["text"])
-    else:
-        with st.chat_message("assistant"):
-            st.write(m["text"])
+def run():
+    st.title("🏃 You Run!")
+    st.write("You dash for the door, but it slams shut behind you. The footsteps are getting closer...")
+    if st.button("⚔️ Fight"):
+        go("fight")
+    if st.button("🔒 Look for another exit"):
+        go("exit")
 
-# --- input box ---
-user_msg = st.chat_input("You:")
-if user_msg:
-    st.session_state.messages.append({"role":"user","text":user_msg})
-    with st.chat_message("user"):
-        st.write(user_msg)
+def hide():
+    st.title("🤫 You Hide")
+    st.write("You crouch behind a dusty sofa. The footsteps pause. Someone whispers your name...")
+    if st.button("🏃 Jump out and run"):
+        go("run")
+    if st.button("😱 Stay hidden"):
+        go("caught")
 
-    reply = respond(user_msg)
-    st.session_state.messages.append({"role":"game","text":reply})
-    with st.chat_message("assistant"):
-        st.write(reply)
+def fight():
+    st.title("⚔️ The Fight")
+    st.write("You grab a broken chair leg and swing. A shadowy figure lunges!")
+    if st.button("🏆 You win"):
+        go("win")
+    if st.button("💀 You lose"):
+        go("lose")
+
+def exit():
+    st.title("🚪 Another Exit")
+    st.write("You find a cellar door. It's unlocked...")
+    if st.button("⬇️ Go down"):
+        go("cellar")
+    if st.button("🔙 Go back"):
+        go("start")
+
+def cellar():
+    st.title("🕳️ The Cellar")
+    st.write("The stairs creak as you descend into darkness...")
+    if st.button("👣 Keep going"):
+        go("mystery")
+    if st.button("⬆️ Go back up"):
+        go("start")
+
+def caught():
+    st.title("👤 Caught!")
+    st.write("A cold hand grabs your shoulder. Game over.")
+    if st.button("🔁 Restart"):
+        go("start")
+
+def win():
+    st.title("🏆 Victory!")
+    st.write("You defeated the figure and escaped the house alive!")
+    if st.button("🔁 Play again"):
+        go("start")
+
+def lose():
+    st.title("💀 Defeat")
+    st.write("The figure overpowers you. Darkness consumes everything.")
+    if st.button("🔁 Try again"):
+        go("start")
+
+def mystery():
+    st.title("❓ Mystery Ending")
+    st.write("You stumble upon a glowing door... To be continued!")
+    if st.button("🔁 Restart"):
+        go("start")
+
+# --- Run current scene ---
+scenes = {
+    "start": start,
+    "run": run,
+    "hide": hide,
+    "fight": fight,
+    "exit": exit,
+    "cellar": cellar,
+    "caught": caught,
+    "win": win,
+    "lose": lose,
+    "mystery": mystery,
+}
+scenes[st.session_state.scene]()
