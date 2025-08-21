@@ -1,21 +1,32 @@
 # app.py
-import os, streamlit as st
-from openai import OpenAI
+import streamlit as st
 
-# ====== CONFIG ======
-MODEL = "gpt-4o-mini"  # fast + cheap
-PAGE_TITLE = "Pocket Adventure"
+st.set_page_config(page_title="Team Select", layout="centered")
 
-# Get key from Streamlit secrets or env
-API_KEY = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
-if not API_KEY:
-    st.error("Set OPENAI_API_KEY via streamlit secrets or environment variable.")
-    st.stop()
-client = OpenAI(api_key=API_KEY)
+# ---- Options ----
+CHARACTERS = ["Gojo", "Sukuna"]   # add more later
 
-st.set_page_config(page_title=PAGE_TITLE, layout="wide")
+# ---- State ----
+if "team" not in st.session_state:
+    st.session_state.team = []
 
-# ====== STATE ======
-def init_state():
-    st.session_state.setdefault("started", False)
-    st.session
+# ---- UI ----
+st.title("👥 Choose Your Team")
+
+# dropdown to select character
+choice = st.selectbox("Select a character to add to your team:", CHARACTERS)
+
+if st.button("➕ Add to Team"):
+    if choice not in st.session_state.team:
+        st.session_state.team.append(choice)
+        st.success(f"{choice} added!")
+    else:
+        st.warning(f"{choice} is already in your team.")
+
+st.divider()
+st.subheader("📋 Current Team")
+if st.session_state.team:
+    for i, member in enumerate(st.session_state.team, 1):
+        st.write(f"{i}. {member}")
+else:
+    st.caption("No team members yet.")
