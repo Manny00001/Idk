@@ -1,32 +1,34 @@
 # app.py
 import streamlit as st
+from units import ROSTER   # import stats from separate script
 
-st.set_page_config(page_title="Team Select", layout="centered")
+st.set_page_config(page_title="Choose Team", layout="centered")
 
-# ---- Options ----
-CHARACTERS = ["Gojo", "Sukuna"]   # add more later
+# --- state ---
+st.session_state.setdefault("team", [])
+st.session_state.setdefault("started", False)
 
-# ---- State ----
-if "team" not in st.session_state:
-    st.session_state.team = []
+st.title("Pick Your Team")
 
-# ---- UI ----
-st.title("👥 Choose Your Team")
+# Dropdown
+choice = st.selectbox("Choose your starter:", list(ROSTER.keys()))
 
-# dropdown to select character
-choice = st.selectbox("Select a character to add to your team:", CHARACTERS)
+if st.button("Add to Team"):
+    st.session_state.team = [ROSTER[choice].copy()]
+    st.success(f"Added {choice} to your team.")
 
-if st.button("➕ Add to Team"):
-    if choice not in st.session_state.team:
-        st.session_state.team.append(choice)
-        st.success(f"{choice} added!")
-    else:
-        st.warning(f"{choice} is already in your team.")
+st.write("---")
+st.subheader("Current Team")
 
-st.divider()
-st.subheader("📋 Current Team")
-if st.session_state.team:
-    for i, member in enumerate(st.session_state.team, 1):
-        st.write(f"{i}. {member}")
+if not st.session_state.team:
+    st.caption("No one selected yet.")
 else:
-    st.caption("No team members yet.")
+    for m in st.session_state.team:
+        st.write(f"{m['name']} — {m['class']} (Lv {m['level']})")
+        st.write(f"HP: {m['hp']}")
+        st.write(f"Attack: {m['attack']}")
+        st.write(f"Defense: {m['defense']}")
+
+if st.session_state.team and st.button("Start Adventure ▶"):
+    st.session_state.started = True
+    st.success("Adventure started!")
