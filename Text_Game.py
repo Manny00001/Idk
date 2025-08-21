@@ -1,37 +1,39 @@
-# class_select.py
+# Text_Game.py
 import streamlit as st
+from class_stats import CLASS_STATS   # import the dependency
 
-st.set_page_config(page_title="Choose Your Class", layout="centered")
+st.set_page_config(page_title="Class Select", layout="centered")
 
-# --- class data ---
-CLASSES = {
-    "Mage":    {"hp": 80,  "attack": 40, "defense": 20, "description": "Masters of arcane power, fragile but deal high magic damage."},
-    "Warrior": {"hp": 120, "attack": 35, "defense": 30, "description": "Balanced fighters with strong melee combat skills."},
-    "Healer":  {"hp": 90,  "attack": 20, "defense": 25, "description": "Support allies by healing and keeping the team alive."},
-    "Tank":    {"hp": 160, "attack": 25, "defense": 45, "description": "Absorb damage and protect others with high defense."},
-}
+# --- session state ---
+st.session_state.setdefault("chosen_class", None)
+st.session_state.setdefault("started", False)
 
-# --- state ---
-st.session_state.setdefault("player_class", None)
+# --- UI ---
+st.title("Choose Your Class")
 
-st.title("Pick Your Class")
+cls = st.selectbox("Class:", list(CLASS_STATS.keys()))
 
-# Dropdown to choose class
-choice = st.selectbox("Choose your class:", list(CLASSES.keys()))
+stats = CLASS_STATS[cls]
+st.subheader(cls)
+st.write(stats["desc"])
+st.write(f"HP: {stats['hp']}")
+st.write(f"Attack: {stats['attack']}")
+st.write(f"Defense: {stats['defense']}")
+st.write(f"Speed: {stats['speed']}")
 
-if st.button("Confirm Choice"):
-    st.session_state.player_class = choice
-    st.success(f"You chose {choice}!")
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("Confirm Selection"):
+        st.session_state.chosen_class = cls
+        st.success(f"Selected: {cls}")
 
+with col2:
+    if st.session_state.chosen_class and st.button("Start Adventure"):
+        st.session_state.started = True
+        st.info(f"Adventure started as {st.session_state.chosen_class}.")
+
+# --- Current Info ---
 st.write("---")
-st.subheader("Current Selection")
-
-if not st.session_state.player_class:
-    st.caption("No class selected yet.")
-else:
-    c = CLASSES[st.session_state.player_class]
-    st.write(f"Class: {st.session_state.player_class}")
-    st.write(f"HP: {c['hp']}")
-    st.write(f"Attack: {c['attack']}")
-    st.write(f"Defense: {c['defense']}")
-    st.write(c["description"])
+st.subheader("Current")
+st.write(f"Chosen class: {st.session_state.chosen_class or 'None'}")
+st.write(f"Started: {st.session_state.started}")
