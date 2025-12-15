@@ -1,134 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>School GPS</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<title>School GPS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    * { box-sizing: border-box; }
+<style>
+* { box-sizing: border-box; }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      color: #eaf2ff;
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, sans-serif;
+  color: #eaf2ff;
+  overflow: hidden;
 
-      /* black-ish blue striped background */
-      background:
-        repeating-linear-gradient(
-          135deg,
-          #060b18,
-          #060b18 20px,
-          #08122a 20px,
-          #08122a 40px
-        );
-    }
+  /* animated stripes */
+  background:
+    repeating-linear-gradient(
+      135deg,
+      #050b1f,
+      #050b1f 20px,
+      #0a1638 20px,
+      #0a1638 40px
+    );
+  animation: stripes 12s linear infinite;
+}
 
-    .card {
-      width: 92%;
-      max-width: 520px;
-      padding: 42px;
-      border-radius: 22px;
-      background: linear-gradient(180deg, #0b1a3a, #08142e);
-      box-shadow: 0 30px 80px rgba(0,0,0,0.6);
-      border: 1px solid rgba(255,255,255,0.06);
-    }
+@keyframes stripes {
+  from { background-position: 0 0; }
+  to { background-position: 400px 400px; }
+}
 
-    h1 {
-      margin: 0;
-      font-size: 3rem;
-      font-weight: 900;
-      letter-spacing: 1px;
-      text-align: center;
-    }
+.center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-    .creators {
-      margin-top: 6px;
-      margin-bottom: 28px;
-      text-align: center;
-      font-size: 0.95rem;
-      opacity: 0.8;
-    }
+.card {
+  width: 92%;
+  max-width: 520px;
+  padding: 42px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #0b1a3a, #08142e);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.06);
+}
 
-    input {
-      width: 100%;
-      padding: 16px;
-      margin: 8px 0;
-      border-radius: 12px;
-      border: none;
-      font-size: 1.05rem;
-      background: #0e224f;
-      color: #eaf2ff;
-      outline: none;
-    }
+h1 {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 900;
+  text-align: center;
+}
 
-    input::placeholder {
-      color: #9fb2ff;
-      opacity: 0.7;
-    }
+.creators {
+  margin: 6px 0 28px;
+  text-align: center;
+  opacity: 0.75;
+  font-size: 0.95rem;
+}
 
-    button {
-      width: 100%;
-      padding: 16px;
-      margin-top: 10px;
-      border-radius: 14px;
-      border: none;
-      font-size: 1.1rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #1f4fff, #3a7bff);
-      color: white;
-      cursor: pointer;
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
-      box-shadow: 0 10px 30px rgba(31,79,255,0.4);
-    }
+input {
+  width: 100%;
+  padding: 16px;
+  margin: 8px 0;
+  border-radius: 12px;
+  border: none;
+  background: #0e224f;
+  color: #eaf2ff;
+  font-size: 1.05rem;
+}
 
-    button:active {
-      transform: scale(0.97);
-    }
+input::placeholder {
+  color: #9fb2ff;
+  opacity: 0.7;
+}
 
-    .or {
-      margin: 18px 0;
-      text-align: center;
-      font-weight: 700;
-      opacity: 0.75;
-    }
-  </style>
+button {
+  width: 100%;
+  padding: 16px;
+  margin-top: 10px;
+  border-radius: 14px;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  background: linear-gradient(135deg, #1f4fff, #3a7bff);
+  color: white;
+}
+
+.or {
+  margin: 18px 0;
+  text-align: center;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+/* loading screen */
+.loading {
+  display: none;
+  flex-direction: column;
+  gap: 20px;
+  text-align: center;
+}
+
+.spinner {
+  width: 70px;
+  height: 70px;
+  border: 6px solid rgba(255,255,255,0.2);
+  border-top-color: #4da3ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.tip {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+</style>
 </head>
 
 <body>
+<div class="center" id="main">
   <div class="card">
     <h1>School GPS</h1>
     <div class="creators">by Albert Ilas & Manny Parris</div>
 
-    <!-- Class search -->
     <input id="letter" placeholder="Class Letter (A, B, C)">
     <input id="number" placeholder="Class Number (101)">
-    <button onclick="byClass()">Find Class</button>
+    <button onclick="startLoading()">Find Class</button>
 
     <div class="or">OR</div>
 
-    <!-- Teacher search -->
     <input id="teacher" placeholder="Teacher Last Name">
-    <button onclick="byTeacher()">Find Teacher</button>
+    <button onclick="startLoading()">Find Teacher</button>
   </div>
+</div>
 
-  <script>
-    function byClass() {
-      const l = letter.value.trim();
-      const n = number.value.trim();
-      if (!l || !n) return alert("Enter class letter and number");
-      alert("Searching class: " + l.toUpperCase() + n);
-    }
+<div class="center loading" id="loading">
+  <div class="spinner"></div>
+  <div class="tip" id="tip"></div>
+</div>
 
-    function byTeacher() {
-      const t = teacher.value.trim();
-      if (!t) return alert("Enter teacher name");
-      alert("Searching teacher: " + t);
-    }
-  </script>
+<script>
+const tips = [
+  "Tip: Studying for school increases your GPA.",
+  "Tip: Eating 3 healthy meals a day helps you grow.",
+  "Tip: Sleeping actually helps your brain. Crazy, right?",
+  "Tip: Walking to class late is still late.",
+  "Tip: Do NOT use ChatGPT for school. Definitely not."
+];
+
+function startLoading() {
+  document.getElementById("main").style.display = "none";
+  document.getElementById("loading").style.display = "flex";
+
+  document.getElementById("tip").innerText =
+    tips[Math.floor(Math.random() * tips.length)];
+
+  const wait = Math.floor(Math.random() * 7000) + 8000; // 8–15 sec
+  setTimeout(() => {
+    alert("Navigation loaded (placeholder)");
+  }, wait);
+}
+</script>
 </body>
 </html>
