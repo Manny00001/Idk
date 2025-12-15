@@ -11,27 +11,26 @@
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
-  color: #eef2ff;
+  color: #eaf2ff;
   overflow: hidden;
-  background: #0a1024;
+  background: #050b1f;
 }
 
-/* smooth cardinal / navy / gold background */
+/* smooth dark-blue animated stripes */
 .bg {
   position: fixed;
   inset: 0;
   background:
     repeating-linear-gradient(
       135deg,
-      #0a1024 0px,
-      #0a1024 60px,   /* thick navy */
-      #8c1d18 60px,
-      #8c1d18 75px,   /* thinner cardinal */
-      #d4af37 75px,
-      #d4af37 80px    /* thin gold */
+      #050b1f 0px,
+      #050b1f 70px,
+      #0a1638 70px,
+      #0a1638 100px,
+      #13255a 100px,
+      #13255a 115px
     );
-  animation: drift 40s linear infinite;
-  transform: translateZ(0);
+  animation: drift 50s linear infinite;
 }
 
 @keyframes drift {
@@ -55,10 +54,11 @@ body {
   max-width: 560px;
   padding: 42px;
   border-radius: 22px;
-  background: linear-gradient(180deg, #0f1c3d, #0b1633);
+  background: linear-gradient(180deg, #0b1a3a, #08142e);
   box-shadow: 0 30px 80px rgba(0,0,0,0.6);
 }
 
+/* text */
 h1 {
   margin: 0;
   font-size: 3rem;
@@ -69,18 +69,19 @@ h1 {
 .creators {
   margin: 6px 0 28px;
   text-align: center;
-  opacity: 0.75;
   font-size: 0.95rem;
+  opacity: 0.75;
 }
 
+/* inputs */
 input {
   width: 100%;
   padding: 16px;
   margin: 8px 0;
   border-radius: 12px;
   border: none;
-  background: #13255a;
-  color: #eef2ff;
+  background: #0e224f;
+  color: #eaf2ff;
   font-size: 1.05rem;
 }
 
@@ -93,7 +94,7 @@ button {
   font-size: 1.1rem;
   font-weight: 800;
   cursor: pointer;
-  background: linear-gradient(135deg, #8c1d18, #b12a23);
+  background: linear-gradient(135deg, #1f4fff, #3a7bff);
   color: white;
 }
 
@@ -113,15 +114,15 @@ button {
 }
 
 .loading-title {
-  letter-spacing: 2px;
   font-weight: 900;
+  letter-spacing: 2px;
 }
 
 .spinner {
   width: 70px;
   height: 70px;
   border: 6px solid rgba(255,255,255,0.2);
-  border-top-color: #d4af37;
+  border-top-color: #4da3ff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: auto;
@@ -138,27 +139,28 @@ button {
 
 /* results */
 .results {
-  max-height: 60vh;
+  max-height: 55vh;
   overflow-y: auto;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .step {
-  padding: 12px;
+  padding: 14px;
   margin: 6px 0;
-  background: #13255a;
+  background: #0e224f;
   border-radius: 10px;
+  opacity: 0.85;
 }
 
 .map {
   height: 180px;
   border-radius: 14px;
-  background: #0a1024;
+  background: #050b1f;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0.7;
-  margin-top: 10px;
+  margin-bottom: 14px;
 }
 </style>
 </head>
@@ -198,13 +200,13 @@ button {
     <h2>Directions</h2>
 
     <div class="results">
-      <div class="step">1. Exit classroom</div>
-      <div class="step">2. Turn right</div>
-      <div class="step">3. Walk to hallway A</div>
-      <div class="step">4. Take stairs up</div>
-      <div class="step">5. Turn left</div>
-      <div class="step">6. Pass office</div>
-      <div class="step">7. Arrive at destination</div>
+      <div class="step">Enter direction here</div>
+      <div class="step">Enter direction here</div>
+      <div class="step">Enter direction here</div>
+      <div class="step">Enter direction here</div>
+      <div class="step">Enter direction here</div>
+      <div class="step">Enter direction here</div>
+      <div class="step">Enter direction here</div>
     </div>
 
     <div class="map">Visual Path Placeholder</div>
@@ -218,7 +220,7 @@ const tips = [
   "Tip: Studying for school increases your GPA.",
   "Tip: Eating three meals a day helps you grow.",
   "Tip: Sleep improves memory and focus.",
-  "Tip: Getting to class early is never a mistake."
+  "Tip: Being early is better than being late."
 ];
 
 let tipIndex = 0;
@@ -227,8 +229,8 @@ let tipTimer;
 function startLoading() {
   switchScreen("loading");
 
-  tip.textContent = tips[0];
   tipIndex = 0;
+  tip.textContent = tips[0];
 
   tipTimer = setInterval(() => {
     tipIndex = (tipIndex + 1) % tips.length;
@@ -246,7 +248,9 @@ function goBack() {
 }
 
 function switchScreen(id) {
-  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".screen").forEach(s =>
+    s.classList.remove("active")
+  );
   document.getElementById(id).classList.add("active");
 }
 </script>
