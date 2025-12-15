@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>School GPS</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, sans-serif;
+      background: #b11226;
+      color: white;
+    }
+    .box {
+      background: #8c0f1d;
+      padding: 30px;
+      border-radius: 10px;
+      width: 300px;
+      text-align: center;
+    }
+    input, button {
+      width: 100%;
+      margin: 6px 0;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+    }
+    button {
+      background: white;
+      color: #b11226;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .or {
+      margin: 10px 0;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>School GPS</h2>
+
+    <!-- Option 1 -->
+    <input id="letter" placeholder="Class Letter (A, B, C)">
+    <input id="number" placeholder="Class Number (101)">
+    <button onclick="byClass()">Find by Class</button>
+
+    <div class="or">OR</div>
+
+    <!-- Option 2 -->
+    <input id="teacher" placeholder="Teacher Last Name">
+    <button onclick="byTeacher()">Find by Teacher</button>
+  </div>
+
+  <script>
+    function byClass() {
+      const l = document.getElementById("letter").value;
+      const n = document.getElementById("number").value;
+      alert("Searching class: " + l + n);
+    }
+
+    function byTeacher() {
+      const t = document.getElementById("teacher").value;
+      alert("Searching teacher: " + t);
+    }
+  </script>
+</body>
+</html>
