@@ -10,48 +10,52 @@
 
 body {
   margin: 0;
-  min-height: 100vh;
   font-family: system-ui, sans-serif;
-  color: #eaf2ff;
+  color: #eef2ff;
   overflow: hidden;
-  background: #050b1f;
+  background: #0a1024;
 }
 
-/* smooth animated background layer */
+/* smooth cardinal / navy / gold background */
 .bg {
   position: fixed;
-  inset: -50%;
-  background: repeating-linear-gradient(
-    135deg,
-    #050b1f 0px,
-    #050b1f 40px,
-    #0a1638 40px,
-    #0a1638 80px
-  );
-  animation: drift 30s linear infinite;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      #0a1024 0px,
+      #0a1024 60px,   /* thick navy */
+      #8c1d18 60px,
+      #8c1d18 75px,   /* thinner cardinal */
+      #d4af37 75px,
+      #d4af37 80px    /* thin gold */
+    );
+  animation: drift 40s linear infinite;
   transform: translateZ(0);
 }
 
 @keyframes drift {
-  from { transform: translate(0,0); }
-  to { transform: translate(400px,400px); }
+  from { background-position: 0 0; }
+  to { background-position: 300px 300px; }
 }
 
-.center {
+.screen {
   position: relative;
   z-index: 2;
   min-height: 100vh;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
 }
 
+.screen.active { display: flex; }
+
 .card {
   width: 92%;
-  max-width: 520px;
+  max-width: 560px;
   padding: 42px;
   border-radius: 22px;
-  background: linear-gradient(180deg, #0b1a3a, #08142e);
+  background: linear-gradient(180deg, #0f1c3d, #0b1633);
   box-shadow: 0 30px 80px rgba(0,0,0,0.6);
 }
 
@@ -75,8 +79,8 @@ input {
   margin: 8px 0;
   border-radius: 12px;
   border: none;
-  background: #0e224f;
-  color: #eaf2ff;
+  background: #13255a;
+  color: #eef2ff;
   font-size: 1.05rem;
 }
 
@@ -89,7 +93,7 @@ button {
   font-size: 1.1rem;
   font-weight: 800;
   cursor: pointer;
-  background: linear-gradient(135deg, #1f4fff, #3a7bff);
+  background: linear-gradient(135deg, #8c1d18, #b12a23);
   color: white;
 }
 
@@ -101,24 +105,23 @@ button {
 }
 
 /* loading */
-.loading {
-  display: none;
-  flex-direction: column;
-  gap: 14px;
+.loading-box {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .loading-title {
-  font-weight: 900;
   letter-spacing: 2px;
-  opacity: 0.9;
+  font-weight: 900;
 }
 
 .spinner {
   width: 70px;
   height: 70px;
   border: 6px solid rgba(255,255,255,0.2);
-  border-top-color: #4da3ff;
+  border-top-color: #d4af37;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: auto;
@@ -130,7 +133,32 @@ button {
 
 .tip {
   font-size: 0.9rem;
-  opacity: 0.85;
+  opacity: 0.8;
+}
+
+/* results */
+.results {
+  max-height: 60vh;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+.step {
+  padding: 12px;
+  margin: 6px 0;
+  background: #13255a;
+  border-radius: 10px;
+}
+
+.map {
+  height: 180px;
+  border-radius: 14px;
+  background: #0a1024;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  margin-top: 10px;
 }
 </style>
 </head>
@@ -138,7 +166,8 @@ button {
 <body>
 <div class="bg"></div>
 
-<div class="center" id="main">
+<!-- SEARCH -->
+<div class="screen active" id="search">
   <div class="card">
     <h1>School GPS</h1>
     <div class="creators">by Albert Ilas & Manny Parris</div>
@@ -154,39 +183,71 @@ button {
   </div>
 </div>
 
-<div class="center loading" id="loading">
-  <div class="loading-title">LOADING PATHWAY…</div>
-  <div class="spinner"></div>
-  <div class="tip" id="tip"></div>
+<!-- LOADING -->
+<div class="screen" id="loading">
+  <div class="loading-box">
+    <div class="loading-title">LOADING PATHWAY…</div>
+    <div class="spinner"></div>
+    <div class="tip" id="tip"></div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="screen" id="results">
+  <div class="card">
+    <h2>Directions</h2>
+
+    <div class="results">
+      <div class="step">1. Exit classroom</div>
+      <div class="step">2. Turn right</div>
+      <div class="step">3. Walk to hallway A</div>
+      <div class="step">4. Take stairs up</div>
+      <div class="step">5. Turn left</div>
+      <div class="step">6. Pass office</div>
+      <div class="step">7. Arrive at destination</div>
+    </div>
+
+    <div class="map">Visual Path Placeholder</div>
+
+    <button onclick="goBack()">Back</button>
+  </div>
 </div>
 
 <script>
 const tips = [
-  "Tip: Studying increases your GPA.",
-  "Tip: Eating 3 meals a day helps you grow.",
-  "Tip: Sleep actually helps memory.",
-  "Tip: Walking faster doesn’t reverse lateness.",
-  "Tip: Definitely do NOT use ChatGPT for school."
+  "Tip: Studying for school increases your GPA.",
+  "Tip: Eating three meals a day helps you grow.",
+  "Tip: Sleep improves memory and focus.",
+  "Tip: Getting to class early is never a mistake."
 ];
 
 let tipIndex = 0;
-let tipInterval;
+let tipTimer;
 
 function startLoading() {
-  main.style.display = "none";
-  loading.style.display = "flex";
+  switchScreen("loading");
 
   tip.textContent = tips[0];
-  tipInterval = setInterval(() => {
+  tipIndex = 0;
+
+  tipTimer = setInterval(() => {
     tipIndex = (tipIndex + 1) % tips.length;
     tip.textContent = tips[tipIndex];
   }, 3000);
 
-  const wait = Math.random() * 7000 + 8000;
   setTimeout(() => {
-    clearInterval(tipInterval);
-    alert("Navigation loaded (placeholder)");
-  }, wait);
+    clearInterval(tipTimer);
+    switchScreen("results");
+  }, Math.random() * 7000 + 8000);
+}
+
+function goBack() {
+  switchScreen("search");
+}
+
+function switchScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
 }
 </script>
 </body>
