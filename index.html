@@ -15,13 +15,6 @@ body {
   color: #eaf2ff;
 }
 
-/* static background */
-.bg {
-  position: fixed;
-  inset: 0;
-  background: #050b1f;
-}
-
 .screen {
   min-height: 100vh;
   display: none;
@@ -29,11 +22,13 @@ body {
   justify-content: center;
 }
 
-.screen.active { display: flex; }
+.screen.active {
+  display: flex;
+}
 
 .card {
   width: 92%;
-  max-width: 560px;
+  max-width: 520px;
   padding: 40px;
   border-radius: 22px;
   background: linear-gradient(180deg, #0b1a3a, #08142e);
@@ -48,27 +43,25 @@ h1 {
 }
 
 .creators {
-  margin-bottom: 28px;
+  margin: 10px 0 30px;
   text-align: center;
-  font-size: 0.95rem;
-  opacity: 0.75;
+  opacity: 0.7;
 }
 
 input {
   width: 100%;
   padding: 16px;
-  margin: 8px 0;
   border-radius: 12px;
   border: none;
   background: #0e224f;
-  color: #eaf2ff;
+  color: white;
   font-size: 1.05rem;
 }
 
 button {
   width: 100%;
+  margin-top: 14px;
   padding: 16px;
-  margin-top: 12px;
   border-radius: 14px;
   border: none;
   font-size: 1.1rem;
@@ -79,10 +72,6 @@ button {
 }
 
 /* loading */
-.loading-box {
-  text-align: center;
-}
-
 .spinner {
   width: 70px;
   height: 70px;
@@ -93,31 +82,25 @@ button {
   margin: 24px auto;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.tip {
-  font-size: 0.9rem;
-  opacity: 0.8;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
-/* results */
 .results {
   max-height: 55vh;
   overflow-y: auto;
-  margin-bottom: 18px;
 }
 
 .step {
-  padding: 14px;
-  margin: 6px 0;
   background: #0e224f;
+  padding: 14px;
   border-radius: 10px;
+  margin: 8px 0;
 }
 </style>
 </head>
 
 <body>
-<div class="bg"></div>
 
 <!-- SEARCH -->
 <div class="screen active" id="search">
@@ -125,17 +108,17 @@ button {
     <h1>School GPS</h1>
     <div class="creators">by Albert Ilas & Manny Parris</div>
 
-    <input id="classInput" placeholder="Class (A101, B203, C110)">
-    <button onclick="startLoading()">Find Class</button>
+    <input id="classInput" placeholder="Enter class (A101, B204)">
+    <button onclick="start()">Find Class</button>
   </div>
 </div>
 
 <!-- LOADING -->
 <div class="screen" id="loading">
-  <div class="loading-box">
+  <div class="card" style="text-align:center;">
     <div style="font-weight:900;letter-spacing:2px;">LOADING PATHWAY…</div>
     <div class="spinner"></div>
-    <div class="tip" id="tip"></div>
+    <div style="opacity:.8;">All routes start at the main entrance</div>
   </div>
 </div>
 
@@ -143,91 +126,69 @@ button {
 <div class="screen" id="results">
   <div class="card">
     <h2>Directions</h2>
-
     <div class="results" id="directions"></div>
-
-    <button onclick="goBack()">Back</button>
+    <button onclick="back()">Back</button>
   </div>
 </div>
 
 <script>
-const tips = [
-  "All routes start at the Main Entrance.",
-  "Follow hallway letters carefully.",
-  "Double doors are key landmarks.",
-  "Left and right matter."
-];
-
-let tipTimer;
-
-function startLoading() {
+function start() {
   const input = document.getElementById("classInput").value.trim().toUpperCase();
   if (!input) return;
 
-  switchScreen("loading");
-
-  let i = 0;
-  tip.textContent = tips[0];
-  tipTimer = setInterval(() => {
-    i = (i + 1) % tips.length;
-    tip.textContent = tips[i];
-  }, 2500);
+  show("loading");
 
   setTimeout(() => {
-    clearInterval(tipTimer);
-    showDirections(input);
-    switchScreen("results");
-  }, 3000);
+    generateDirections(input);
+    show("results");
+  }, 2500);
 }
 
-function showDirections(cls) {
+function generateDirections(cls) {
   const hall = cls[0];
   const box = document.getElementById("directions");
   box.innerHTML = "";
 
-  const steps = [];
-
-  steps.push("Start at the Main Entrance.");
-  steps.push("Exit through the double doors.");
-  steps.push("Turn left and walk past the atrium.");
+  const steps = [
+    "Start at the main entrance.",
+    "Exit through the double doors.",
+    "Turn left and walk past the atrium."
+  ];
 
   if (hall === "A") {
-    steps.push("Take the first hallway on the left. This is the A100 hall.");
-  } 
-  else if (hall === "B") {
-    steps.push("Walk past the A100 hall.");
+    steps.push("First hallway on the left is A100 hall.");
+  } else if (hall === "B") {
+    steps.push("Pass the A100 hall.");
     steps.push("Continue straight into the B100 hall.");
-  } 
-  else if (hall === "C") {
-    steps.push("Turn left and walk past the B hall.");
+  } else if (hall === "C") {
+    steps.push("Turn left and walk past B hall.");
     steps.push("Turn left again at the double doors.");
-    steps.push("The first hallway on your left is the C hall.");
-  } 
-  else if (hall === "D") {
-    steps.push("Follow the same path as C hall.");
+    steps.push("First hallway on your left is C hall.");
+  } else if (hall === "D") {
+    steps.push("Follow the C hall path.");
     steps.push("Pass the C hall.");
-    steps.push("The D hall is on your left.");
-  } 
-  else {
-    steps.push("Unknown hall.");
+    steps.push("D hall is on your left.");
+  } else {
+    steps.push("Hall not recognized.");
   }
 
-  steps.forEach(s => {
+  steps.forEach(text => {
     const div = document.createElement("div");
     div.className = "step";
-    div.textContent = s;
+    div.textContent = text;
     box.appendChild(div);
   });
 }
 
-function goBack() {
-  switchScreen("search");
+function back() {
+  show("search");
 }
 
-function switchScreen(id) {
+function show(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 </script>
+
 </body>
 </html>
