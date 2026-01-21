@@ -11,36 +11,18 @@
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
-  color: #eaf2ff;
-  overflow: hidden;
   background: #050b1f;
+  color: #eaf2ff;
 }
 
-/* smooth dark-blue animated stripes */
+/* static background */
 .bg {
   position: fixed;
   inset: 0;
-  background:
-    repeating-linear-gradient(
-      135deg,
-      #050b1f 0px,
-      #050b1f 70px,
-      #0a1638 70px,
-      #0a1638 100px,
-      #13255a 100px,
-      #13255a 115px
-    );
-  animation: drift 50s linear infinite;
-}
-
-@keyframes drift {
-  from { background-position: 0 0; }
-  to { background-position: 300px 300px; }
+  background: #050b1f;
 }
 
 .screen {
-  position: relative;
-  z-index: 2;
   min-height: 100vh;
   display: none;
   align-items: center;
@@ -52,13 +34,12 @@ body {
 .card {
   width: 92%;
   max-width: 560px;
-  padding: 42px;
+  padding: 40px;
   border-radius: 22px;
   background: linear-gradient(180deg, #0b1a3a, #08142e);
   box-shadow: 0 30px 80px rgba(0,0,0,0.6);
 }
 
-/* text */
 h1 {
   margin: 0;
   font-size: 3rem;
@@ -67,13 +48,12 @@ h1 {
 }
 
 .creators {
-  margin: 6px 0 28px;
+  margin-bottom: 28px;
   text-align: center;
   font-size: 0.95rem;
   opacity: 0.75;
 }
 
-/* inputs */
 input {
   width: 100%;
   padding: 16px;
@@ -88,7 +68,7 @@ input {
 button {
   width: 100%;
   padding: 16px;
-  margin-top: 10px;
+  margin-top: 12px;
   border-radius: 14px;
   border: none;
   font-size: 1.1rem;
@@ -98,24 +78,9 @@ button {
   color: white;
 }
 
-.or {
-  margin: 18px 0;
-  text-align: center;
-  font-weight: 700;
-  opacity: 0.7;
-}
-
 /* loading */
 .loading-box {
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.loading-title {
-  font-weight: 900;
-  letter-spacing: 2px;
 }
 
 .spinner {
@@ -125,12 +90,10 @@ button {
   border-top-color: #4da3ff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin: auto;
+  margin: 24px auto;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .tip {
   font-size: 0.9rem;
@@ -141,7 +104,7 @@ button {
 .results {
   max-height: 55vh;
   overflow-y: auto;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .step {
@@ -149,18 +112,6 @@ button {
   margin: 6px 0;
   background: #0e224f;
   border-radius: 10px;
-  opacity: 0.85;
-}
-
-.map {
-  height: 180px;
-  border-radius: 14px;
-  background: #050b1f;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.7;
-  margin-bottom: 14px;
 }
 </style>
 </head>
@@ -174,21 +125,15 @@ button {
     <h1>School GPS</h1>
     <div class="creators">by Albert Ilas & Manny Parris</div>
 
-    <input placeholder="Class Letter (A, B, C)">
-    <input placeholder="Class Number (101)">
+    <input id="classInput" placeholder="Class (A101, B203, C110)">
     <button onclick="startLoading()">Find Class</button>
-
-    <div class="or">OR</div>
-
-    <input placeholder="Teacher Last Name">
-    <button onclick="startLoading()">Find Teacher</button>
   </div>
 </div>
 
 <!-- LOADING -->
 <div class="screen" id="loading">
   <div class="loading-box">
-    <div class="loading-title">LOADING PATHWAY…</div>
+    <div style="font-weight:900;letter-spacing:2px;">LOADING PATHWAY…</div>
     <div class="spinner"></div>
     <div class="tip" id="tip"></div>
   </div>
@@ -199,17 +144,7 @@ button {
   <div class="card">
     <h2>Directions</h2>
 
-    <div class="results">
-      <div class="step">Enter direction here</div>
-      <div class="step">Enter direction here</div>
-      <div class="step">Enter direction here</div>
-      <div class="step">Enter direction here</div>
-      <div class="step">Enter direction here</div>
-      <div class="step">Enter direction here</div>
-      <div class="step">Enter direction here</div>
-    </div>
-
-    <div class="map">Visual Path Placeholder</div>
+    <div class="results" id="directions"></div>
 
     <button onclick="goBack()">Back</button>
   </div>
@@ -217,30 +152,72 @@ button {
 
 <script>
 const tips = [
-  "Tip: Studying for school increases your GPA.",
-  "Tip: Eating three meals a day helps you grow.",
-  "Tip: Sleep improves memory and focus.",
-  "Tip: Being early is better than being late."
+  "All routes start at the Main Entrance.",
+  "Follow hallway letters carefully.",
+  "Double doors are key landmarks.",
+  "Left and right matter."
 ];
 
-let tipIndex = 0;
 let tipTimer;
 
 function startLoading() {
+  const input = document.getElementById("classInput").value.trim().toUpperCase();
+  if (!input) return;
+
   switchScreen("loading");
 
-  tipIndex = 0;
+  let i = 0;
   tip.textContent = tips[0];
-
   tipTimer = setInterval(() => {
-    tipIndex = (tipIndex + 1) % tips.length;
-    tip.textContent = tips[tipIndex];
-  }, 3000);
+    i = (i + 1) % tips.length;
+    tip.textContent = tips[i];
+  }, 2500);
 
   setTimeout(() => {
     clearInterval(tipTimer);
+    showDirections(input);
     switchScreen("results");
-  }, Math.random() * 7000 + 8000);
+  }, 3000);
+}
+
+function showDirections(cls) {
+  const hall = cls[0];
+  const box = document.getElementById("directions");
+  box.innerHTML = "";
+
+  const steps = [];
+
+  steps.push("Start at the Main Entrance.");
+  steps.push("Exit through the double doors.");
+  steps.push("Turn left and walk past the atrium.");
+
+  if (hall === "A") {
+    steps.push("Take the first hallway on the left. This is the A100 hall.");
+  } 
+  else if (hall === "B") {
+    steps.push("Walk past the A100 hall.");
+    steps.push("Continue straight into the B100 hall.");
+  } 
+  else if (hall === "C") {
+    steps.push("Turn left and walk past the B hall.");
+    steps.push("Turn left again at the double doors.");
+    steps.push("The first hallway on your left is the C hall.");
+  } 
+  else if (hall === "D") {
+    steps.push("Follow the same path as C hall.");
+    steps.push("Pass the C hall.");
+    steps.push("The D hall is on your left.");
+  } 
+  else {
+    steps.push("Unknown hall.");
+  }
+
+  steps.forEach(s => {
+    const div = document.createElement("div");
+    div.className = "step";
+    div.textContent = s;
+    box.appendChild(div);
+  });
 }
 
 function goBack() {
@@ -248,9 +225,7 @@ function goBack() {
 }
 
 function switchScreen(id) {
-  document.querySelectorAll(".screen").forEach(s =>
-    s.classList.remove("active")
-  );
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 </script>
