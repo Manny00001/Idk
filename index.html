@@ -1,107 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>School GPS</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <style>
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-  background: #050b1f;
-  color: #eaf2ff;
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,sans-serif;background:#050b1f;color:#eaf2ff}
+.screen{min-height:100vh;display:none;align-items:center;justify-content:center}
+.screen.active{display:flex}
+.card{
+  width:92%;max-width:560px;padding:40px;border-radius:24px;
+  background:linear-gradient(180deg,#0b1a3a,#08142e);
+  box-shadow:0 30px 80px rgba(0,0,0,.6)
 }
-
-.screen {
-  min-height: 100vh;
-  display: none;
-  align-items: center;
-  justify-content: center;
+h1{margin:0;text-align:center;font-size:3rem;font-weight:900}
+.creators{margin:10px 0 28px;text-align:center;opacity:.75}
+input{
+  width:100%;padding:16px;border-radius:14px;border:none;
+  background:#0e224f;color:#eaf2ff;font-size:1.05rem
 }
-
-.screen.active { display: flex; }
-
-.card {
-  width: 92%;
-  max-width: 540px;
-  padding: 40px;
-  border-radius: 24px;
-  background: linear-gradient(180deg, #0b1a3a, #08142e);
-  box-shadow: 0 30px 80px rgba(0,0,0,0.6);
-}
-
-h1 {
-  text-align: center;
-  font-size: 3rem;
-  margin: 0;
-}
-
-.creators {
-  text-align: center;
-  opacity: 0.7;
-  margin-bottom: 30px;
-}
-
-input {
-  width: 100%;
-  padding: 16px;
-  border-radius: 14px;
-  border: none;
-  background: #0e224f;
-  color: white;
-  font-size: 1.05rem;
-}
-
-button {
-  width: 100%;
-  margin-top: 16px;
-  padding: 16px;
-  border-radius: 16px;
-  border: none;
-  font-size: 1.1rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #1f4fff, #3a7bff);
-  color: white;
-  cursor: pointer;
-}
-
-/* bubbles */
-.results {
-  margin-top: 10px;
-}
-
-.step {
-  background: #0e224f;
-  padding: 14px 18px;
-  border-radius: 999px;
-  margin: 10px 0;
-  opacity: 0;
-  transform: translateY(10px);
-  animation: pop 0.4s ease forwards;
-}
-
-@keyframes pop {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+button{
+  width:100%;padding:16px;margin-top:14px;border-radius:16px;border:none;
+  font-size:1.1rem;font-weight:800;cursor:pointer;
+  background:linear-gradient(135deg,#1f4fff,#3a7bff);color:#fff
 }
 
 /* loading */
-.spinner {
-  width: 70px;
-  height: 70px;
-  border: 6px solid rgba(255,255,255,0.2);
-  border-top-color: #4da3ff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 30px auto;
+.spinner{
+  width:70px;height:70px;border:6px solid rgba(255,255,255,.2);
+  border-top-color:#4da3ff;border-radius:50%;
+  animation:spin 1s linear infinite;margin:26px auto
 }
+@keyframes spin{to{transform:rotate(360deg)}}
 
-@keyframes spin { to { transform: rotate(360deg); } }
+/* bubbly steps */
+.results{margin-top:12px;max-height:60vh;overflow:auto;padding-right:2px}
+.step{
+  background:#0e224f;
+  padding:14px 18px;
+  border-radius:999px;
+  margin:10px 0;
+  opacity:0;
+  transform:translateY(10px);
+  animation:pop .38s ease forwards;
+}
+@keyframes pop{to{opacity:1;transform:translateY(0)}}
+.small{opacity:.75;font-size:.95rem}
 </style>
 </head>
 
@@ -112,8 +58,13 @@ button {
   <div class="card">
     <h1>School GPS</h1>
     <div class="creators">by Albert Ilas & Manny Parris</div>
-    <input id="classInput" placeholder="Enter class (A101, F214, G305)">
+
+    <input id="classInput" placeholder="Enter class (A101, C214, F115, G104)" />
     <button onclick="start()">Find Class</button>
+
+    <div class="small" style="margin-top:12px;">
+      Format: Letter + 3 digits. Example: F114
+    </div>
   </div>
 </div>
 
@@ -122,96 +73,169 @@ button {
   <div class="card" style="text-align:center;">
     <div style="font-weight:900;letter-spacing:2px;">CALCULATING ROUTE…</div>
     <div class="spinner"></div>
-    <div style="opacity:.8;">Starting from the main entrance</div>
+    <div class="small" id="tipText">Starting at the Main Entrance</div>
   </div>
 </div>
 
 <!-- RESULTS -->
 <div class="screen" id="results">
   <div class="card">
-    <h2>Directions</h2>
+    <h2 style="margin:0 0 10px;">Directions</h2>
     <div class="results" id="directions"></div>
     <button onclick="back()">Back</button>
   </div>
 </div>
 
 <script>
-function start() {
-  const input = document.getElementById("classInput").value.trim().toUpperCase();
-  if (!input) return;
+const tips = [
+  "Starting at the Main Entrance",
+  "Head toward the Atrium first",
+  "Then go to your letter section",
+  "Follow room numbers to the exact room"
+];
+
+let tipTimer;
+
+function start(){
+  const raw = document.getElementById("classInput").value.trim().toUpperCase();
+  const parsed = parseRoom(raw);
+  if(!parsed){
+    alert("Enter like A101, C214, F115, G104");
+    return;
+  }
 
   show("loading");
+  cycleTips();
 
-  setTimeout(() => {
-    generate(input);
+  setTimeout(()=>{
+    clearInterval(tipTimer);
+    buildDirections(parsed);
     show("results");
-  }, 2200);
+  }, 1800);
 }
 
-function generate(cls) {
-  const hall = cls[0];
-  const number = cls.slice(1);
-  const floor = number[0];
+function parseRoom(raw){
+  // Accept A101, A-101, A 101
+  const m = raw.match(/^([A-Z])[\s-]*([0-9]{3})$/);
+  if(!m) return null;
+
+  let letter = m[1];
+  const num = m[2];
+  const floorDigit = num[0]; // 1,2,3...
+
+  // No D hall now -> treat D as F
+  if(letter === "D") letter = "F";
+
+  // Only allow A B C E F G (per your ask)
+  const allowed = new Set(["A","B","C","E","F","G"]);
+  if(!allowed.has(letter)) return null;
+
+  return {
+    room: letter + num,
+    letter,
+    num,
+    floor: parseInt(floorDigit, 10)
+  };
+}
+
+function floorName(f){
+  // Your maps show 100=Cardinal, 200=Navy; others just "X00 level"
+  if(f === 1) return "100 (Cardinal) level";
+  if(f === 2) return "200 (Navy) level";
+  return (f*100) + " level";
+}
+
+function buildDirections(info){
+  const steps = [];
+  const letter = info.letter;
+  const floor = info.floor;
+
+  // MAIN PATH (matches your map flow: Entrance -> main hall -> Atrium)
+  steps.push("Start at the Main Entrance (100 level).");
+  steps.push("Turn left into the main hallway.");
+  steps.push("Walk all the way down the main hall toward the Atrium.");
+  steps.push("Pass the Atrium area and continue past the double doors (stay on the main route).");
+
+  // FLOOR HANDLING
+  if(floor !== 1){
+    steps.push(`Use the stairs/elevator by the Atrium to go to the ${floorName(floor)}.`);
+    steps.push("On that floor, return to the Atrium area as your reference point.");
+  } else {
+    steps.push("You are on the 100 (Cardinal) level. Use the Atrium as your reference point.");
+  }
+
+  // LETTER ROUTES (based off map layout: A left wing, B top, C right wing, E near Engineering, F right/clinic, G toward Gym)
+  if(letter === "A"){
+    steps.push("From the Atrium: go LEFT into the A section.");
+    steps.push("You are now in the A halls. Follow A room numbers until you reach your room.");
+  }
+
+  if(letter === "B"){
+    steps.push("From the Atrium: go STRAIGHT toward the B section (top wing).");
+    steps.push("Enter the B halls. Follow B room numbers until you reach your room.");
+  }
+
+  if(letter === "C"){
+    steps.push("From the Atrium: go RIGHT into the C section.");
+    steps.push("Enter the C halls. Follow C room numbers until you reach your room.");
+  }
+
+  if(letter === "E"){
+    steps.push("From the Atrium: head toward ENGINEERING / E section.");
+    steps.push("Pass the C section entrance if you see it, and keep following signs for Engineering.");
+    steps.push("Enter the E halls. Follow E room numbers until you reach your room.");
+  }
+
+  if(letter === "F"){
+    steps.push("From the Atrium: go RIGHT toward the CLINIC / F side.");
+    steps.push("Pass the C section entrance (keep going right-side).");
+    steps.push("Continue until you are clearly in the F halls (clinic area is nearby).");
+    steps.push("Follow F room numbers until you reach your room.");
+  }
+
+  if(letter === "G"){
+    steps.push("From the Atrium: head toward the CAFETERIA.");
+    steps.push("Walk along the cafeteria side toward the GYM side.");
+    steps.push("Enter the G section halls near the gym.");
+    steps.push("Follow G room numbers until you reach your room.");
+  }
+
+  // EXACT ROOM
+  steps.push(`Stop when you reach room ${info.room}.`);
+
+  renderStepsOneByOne(steps);
+}
+
+function renderStepsOneByOne(steps){
   const box = document.getElementById("directions");
   box.innerHTML = "";
-
-  const steps = [];
-
-  steps.push("Start at the main entrance.");
-  steps.push("Turn left and walk all the way down the main hall.");
-  steps.push("Pass the atrium and continue past the double doors.");
-
-  steps.push(`Go to the ${floor} floor.`);
-
-  if (hall === "A") {
-    steps.push("Pass the A halls.");
-  }
-  if (hall === "B") {
-    steps.push("Pass the A halls.");
-    steps.push("Continue straight into the B halls.");
-  }
-  if (hall === "C") {
-    steps.push("Pass the A halls.");
-    steps.push("Pass the B halls.");
-    steps.push("Turn left at the double doors.");
-    steps.push("Enter the C halls.");
-  }
-  if (hall === "E") {
-    steps.push("Continue straight past the B and C halls.");
-    steps.push("Enter the E section.");
-  }
-  if (hall === "F") {
-    steps.push("Continue straight past the C halls.");
-    steps.push("Pass the E halls.");
-    steps.push("Enter the F halls.");
-  }
-  if (hall === "G") {
-    steps.push("Continue past the F halls.");
-    steps.push("Enter the G section.");
-  }
-
-  steps.push(`Your classroom ${cls} will be nearby.`);
-
-  // reveal one-by-one
-  steps.forEach((text, i) => {
-    setTimeout(() => {
+  steps.forEach((text, i)=>{
+    setTimeout(()=>{
       const div = document.createElement("div");
       div.className = "step";
       div.textContent = text;
       box.appendChild(div);
-    }, i * 500);
+      box.scrollTop = box.scrollHeight;
+    }, i * 450);
   });
 }
 
-function back() {
-  show("search");
+function cycleTips(){
+  const tipEl = document.getElementById("tipText");
+  let i = 0;
+  tipEl.textContent = tips[0];
+  tipTimer = setInterval(()=>{
+    i = (i + 1) % tips.length;
+    tipEl.textContent = tips[i];
+  }, 900);
 }
 
-function show(id) {
-  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+function back(){ show("search"); }
+
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 </script>
-
 </body>
 </html>
