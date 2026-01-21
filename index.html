@@ -22,36 +22,33 @@ body {
   justify-content: center;
 }
 
-.screen.active {
-  display: flex;
-}
+.screen.active { display: flex; }
 
 .card {
   width: 92%;
-  max-width: 520px;
+  max-width: 540px;
   padding: 40px;
-  border-radius: 22px;
+  border-radius: 24px;
   background: linear-gradient(180deg, #0b1a3a, #08142e);
   box-shadow: 0 30px 80px rgba(0,0,0,0.6);
 }
 
 h1 {
-  margin: 0;
-  font-size: 3rem;
-  font-weight: 900;
   text-align: center;
+  font-size: 3rem;
+  margin: 0;
 }
 
 .creators {
-  margin: 10px 0 30px;
   text-align: center;
   opacity: 0.7;
+  margin-bottom: 30px;
 }
 
 input {
   width: 100%;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: none;
   background: #0e224f;
   color: white;
@@ -60,15 +57,37 @@ input {
 
 button {
   width: 100%;
-  margin-top: 14px;
+  margin-top: 16px;
   padding: 16px;
-  border-radius: 14px;
+  border-radius: 16px;
   border: none;
   font-size: 1.1rem;
   font-weight: 800;
-  cursor: pointer;
   background: linear-gradient(135deg, #1f4fff, #3a7bff);
   color: white;
+  cursor: pointer;
+}
+
+/* bubbles */
+.results {
+  margin-top: 10px;
+}
+
+.step {
+  background: #0e224f;
+  padding: 14px 18px;
+  border-radius: 999px;
+  margin: 10px 0;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: pop 0.4s ease forwards;
+}
+
+@keyframes pop {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* loading */
@@ -79,24 +98,10 @@ button {
   border-top-color: #4da3ff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin: 24px auto;
+  margin: 30px auto;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.results {
-  max-height: 55vh;
-  overflow-y: auto;
-}
-
-.step {
-  background: #0e224f;
-  padding: 14px;
-  border-radius: 10px;
-  margin: 8px 0;
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 
@@ -107,8 +112,7 @@ button {
   <div class="card">
     <h1>School GPS</h1>
     <div class="creators">by Albert Ilas & Manny Parris</div>
-
-    <input id="classInput" placeholder="Enter class (A101, B204)">
+    <input id="classInput" placeholder="Enter class (A101, F214, G305)">
     <button onclick="start()">Find Class</button>
   </div>
 </div>
@@ -116,9 +120,9 @@ button {
 <!-- LOADING -->
 <div class="screen" id="loading">
   <div class="card" style="text-align:center;">
-    <div style="font-weight:900;letter-spacing:2px;">LOADING PATHWAY…</div>
+    <div style="font-weight:900;letter-spacing:2px;">CALCULATING ROUTE…</div>
     <div class="spinner"></div>
-    <div style="opacity:.8;">All routes start at the main entrance</div>
+    <div style="opacity:.8;">Starting from the main entrance</div>
   </div>
 </div>
 
@@ -139,44 +143,63 @@ function start() {
   show("loading");
 
   setTimeout(() => {
-    generateDirections(input);
+    generate(input);
     show("results");
-  }, 2500);
+  }, 2200);
 }
 
-function generateDirections(cls) {
+function generate(cls) {
   const hall = cls[0];
+  const number = cls.slice(1);
+  const floor = number[0];
   const box = document.getElementById("directions");
   box.innerHTML = "";
 
-  const steps = [
-    "Start at the main entrance.",
-    "Exit through the double doors.",
-    "Turn left and walk past the atrium."
-  ];
+  const steps = [];
+
+  steps.push("Start at the main entrance.");
+  steps.push("Turn left and walk all the way down the main hall.");
+  steps.push("Pass the atrium and continue past the double doors.");
+
+  steps.push(`Go to the ${floor} floor.`);
 
   if (hall === "A") {
-    steps.push("First hallway on the left is A100 hall.");
-  } else if (hall === "B") {
-    steps.push("Pass the A100 hall.");
-    steps.push("Continue straight into the B100 hall.");
-  } else if (hall === "C") {
-    steps.push("Turn left and walk past B hall.");
-    steps.push("Turn left again at the double doors.");
-    steps.push("First hallway on your left is C hall.");
-  } else if (hall === "D") {
-    steps.push("Follow the C hall path.");
-    steps.push("Pass the C hall.");
-    steps.push("D hall is on your left.");
-  } else {
-    steps.push("Hall not recognized.");
+    steps.push("Pass the A halls.");
+  }
+  if (hall === "B") {
+    steps.push("Pass the A halls.");
+    steps.push("Continue straight into the B halls.");
+  }
+  if (hall === "C") {
+    steps.push("Pass the A halls.");
+    steps.push("Pass the B halls.");
+    steps.push("Turn left at the double doors.");
+    steps.push("Enter the C halls.");
+  }
+  if (hall === "E") {
+    steps.push("Continue straight past the B and C halls.");
+    steps.push("Enter the E section.");
+  }
+  if (hall === "F") {
+    steps.push("Continue straight past the C halls.");
+    steps.push("Pass the E halls.");
+    steps.push("Enter the F halls.");
+  }
+  if (hall === "G") {
+    steps.push("Continue past the F halls.");
+    steps.push("Enter the G section.");
   }
 
-  steps.forEach(text => {
-    const div = document.createElement("div");
-    div.className = "step";
-    div.textContent = text;
-    box.appendChild(div);
+  steps.push(`Your classroom ${cls} will be nearby.`);
+
+  // reveal one-by-one
+  steps.forEach((text, i) => {
+    setTimeout(() => {
+      const div = document.createElement("div");
+      div.className = "step";
+      div.textContent = text;
+      box.appendChild(div);
+    }, i * 500);
   });
 }
 
