@@ -16,7 +16,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:#050b1f;color:#eaf2ff}
   box-shadow:0 30px 80px rgba(0,0,0,.6)
 }
 h1{margin:0;text-align:center;font-size:3rem;font-weight:900}
-.creators{margin:10px 0 28px;text-align:center;opacity:.75}
+.creators{margin:10px 0 26px;text-align:center;opacity:.75}
 input{
   width:100%;padding:16px;border-radius:14px;border:none;
   background:#0e224f;color:#eaf2ff;font-size:1.05rem
@@ -63,7 +63,7 @@ button{
     <button onclick="start()">Find Class</button>
 
     <div class="small" style="margin-top:12px;">
-      Format: Letter + 3 digits. Example: F114
+      Format: Letter + 3 digits (example: F114)
     </div>
   </div>
 </div>
@@ -87,121 +87,145 @@ button{
 </div>
 
 <script>
+/*
+Room validity based on the maps you sent (100 & 200).
+Only A, B, C, E, F, G (no field house).
+*/
+const VALID = {
+  1: { // 100-level
+    A: { ranges: [[100,116]] },
+    B: { ranges: [[100,121]] },
+    C: { ranges: [[100,116]] },
+    E: { list: [101,103,104,105,106,107] }, // from map
+    F: { ranges: [[101,115]] },
+    G: { ranges: [[101,107]] },
+  },
+  2: { // 200-level
+    A: { ranges: [[200,216]] },
+    B: { ranges: [[200,221]] },
+    C: { ranges: [[200,215]] },
+    E: { ranges: [[200,217]] },
+    // F/G not shown on the 200 map you sent -> treated invalid for now
+  }
+};
+
 const tips = [
   "Starting at the Main Entrance",
   "Head toward the Atrium first",
   "Then go to your letter section",
-  "Follow room numbers to the exact room"
+  "Follow the room numbers in that hall"
 ];
 
 let tipTimer;
 
 function start(){
   const raw = document.getElementById("classInput").value.trim().toUpperCase();
-  const parsed = parseRoom(raw);
-  if(!parsed){
-    alert("Enter like A101, C214, F115, G104");
-    return;
-  }
+  const info = parseRoom(raw);
 
   show("loading");
   cycleTips();
 
   setTimeout(()=>{
     clearInterval(tipTimer);
-    buildDirections(parsed);
+    buildDirections(info);
     show("results");
-  }, 1800);
+  }, 1600);
 }
 
 function parseRoom(raw){
-  // Accept A101, A-101, A 101
   const m = raw.match(/^([A-Z])[\s-]*([0-9]{3})$/);
-  if(!m) return null;
+  if(!m) return { ok:false };
 
   let letter = m[1];
-  const num = m[2];
-  const floorDigit = num[0]; // 1,2,3...
+  const numStr = m[2];
+  const num = parseInt(numStr, 10);
+  const level = parseInt(numStr[0], 10);
 
-  // No D hall now -> treat D as F
-  if(letter === "D") letter = "F";
-
-  // Only allow A B C E F G (per your ask)
+  if(letter === "D") letter = "F"; // your change: D -> F
   const allowed = new Set(["A","B","C","E","F","G"]);
-  if(!allowed.has(letter)) return null;
+  if(!allowed.has(letter)) return { ok:false };
 
-  return {
-    room: letter + num,
-    letter,
-    num,
-    floor: parseInt(floorDigit, 10)
-  };
+  const ok = roomExists(letter, num, level);
+  return { ok, room: letter + numStr, letter, num, level };
 }
 
-function floorName(f){
-  // Your maps show 100=Cardinal, 200=Navy; others just "X00 level"
-  if(f === 1) return "100 (Cardinal) level";
-  if(f === 2) return "200 (Navy) level";
-  return (f*100) + " level";
+function roomExists(letter, num, level){
+  const levelData = VALID[level];
+  if(!levelData) return false;
+
+  const sec = levelData[letter];
+  if(!sec) return false;
+
+  if(sec.list){
+    return sec.list.includes(num);
+  }
+  if(sec.ranges){
+    return sec.ranges.some(([a,b]) => num >= a && num <= b);
+  }
+  return false;
 }
 
 function buildDirections(info){
   const steps = [];
-  const letter = info.letter;
-  const floor = info.floor;
 
-  // MAIN PATH (matches your map flow: Entrance -> main hall -> Atrium)
-  steps.push("Start at the Main Entrance (100 level).");
+  if(!info.ok){
+    renderStepsOneByOne(["ERROR INVALID ROOM"]);
+    return;
+  }
+
+  // Common start (your wording: walk ALL the way down, then pass atrium + double doors)
+  steps.push("Start at the Main Entrance.");
   steps.push("Turn left into the main hallway.");
   steps.push("Walk all the way down the main hall toward the Atrium.");
-  steps.push("Pass the Atrium area and continue past the double doors (stay on the main route).");
+  steps.push("Pass the Atrium, then continue past the double doors.");
 
-  // FLOOR HANDLING
-  if(floor !== 1){
-    steps.push(`Use the stairs/elevator by the Atrium to go to the ${floorName(floor)}.`);
-    steps.push("On that floor, return to the Atrium area as your reference point.");
-  } else {
-    steps.push("You are on the 100 (Cardinal) level. Use the Atrium as your reference point.");
+  // Only mention level if they must change level
+  if(info.level !== 1){
+    steps.push(`Go up to level ${info.level} using the stairs/elevator by the Atrium.`);
+    steps.push("On that level, come back to the Atrium area as your starting point.");
   }
 
-  // LETTER ROUTES (based off map layout: A left wing, B top, C right wing, E near Engineering, F right/clinic, G toward Gym)
-  if(letter === "A"){
+  // Map-based section routing + explicit “passing halls”
+  const L = info.letter;
+
+  if(L === "A"){
     steps.push("From the Atrium: go LEFT into the A section.");
-    steps.push("You are now in the A halls. Follow A room numbers until you reach your room.");
+    steps.push("Stay in the A halls and follow the A room numbers.");
   }
 
-  if(letter === "B"){
-    steps.push("From the Atrium: go STRAIGHT toward the B section (top wing).");
-    steps.push("Enter the B halls. Follow B room numbers until you reach your room.");
+  if(L === "B"){
+    steps.push("From the Atrium: go STRAIGHT toward the B section.");
+    steps.push("Pass the A section entrance if you see it, keep going straight.");
+    steps.push("Enter the B halls and follow the B room numbers.");
   }
 
-  if(letter === "C"){
-    steps.push("From the Atrium: go RIGHT into the C section.");
-    steps.push("Enter the C halls. Follow C room numbers until you reach your room.");
+  if(L === "C"){
+    steps.push("From the Atrium: go RIGHT toward the C side.");
+    steps.push("Pass the B area/center halls and keep following the right-side corridor.");
+    steps.push("Enter the C halls and follow the C room numbers.");
   }
 
-  if(letter === "E"){
-    steps.push("From the Atrium: head toward ENGINEERING / E section.");
-    steps.push("Pass the C section entrance if you see it, and keep following signs for Engineering.");
-    steps.push("Enter the E halls. Follow E room numbers until you reach your room.");
+  if(L === "E"){
+    steps.push("From the Atrium: head toward ENGINEERING / E.");
+    steps.push("Pass the C entrance if you see it, keep going toward Engineering.");
+    steps.push("Enter the E halls and follow the E room numbers.");
   }
 
-  if(letter === "F"){
-    steps.push("From the Atrium: go RIGHT toward the CLINIC / F side.");
-    steps.push("Pass the C section entrance (keep going right-side).");
-    steps.push("Continue until you are clearly in the F halls (clinic area is nearby).");
-    steps.push("Follow F room numbers until you reach your room.");
+  if(L === "F"){
+    steps.push("From the Atrium: go RIGHT toward the CLINIC side.");
+    steps.push("Pass the C halls (keep going along the right-side corridor).");
+    steps.push("Continue until you are clearly in the F hall area.");
+    steps.push("Follow the F room numbers.");
   }
 
-  if(letter === "G"){
+  if(L === "G"){
     steps.push("From the Atrium: head toward the CAFETERIA.");
-    steps.push("Walk along the cafeteria side toward the GYM side.");
-    steps.push("Enter the G section halls near the gym.");
-    steps.push("Follow G room numbers until you reach your room.");
+    steps.push("Pass the right-side halls on the way (C/F area).");
+    steps.push("Keep going toward the GYM side.");
+    steps.push("Enter the G section halls and follow the G room numbers.");
   }
 
-  // EXACT ROOM
-  steps.push(`Stop when you reach room ${info.room}.`);
+  steps.push(`Stop at room ${info.room}.`);
 
   renderStepsOneByOne(steps);
 }
@@ -216,7 +240,7 @@ function renderStepsOneByOne(steps){
       div.textContent = text;
       box.appendChild(div);
       box.scrollTop = box.scrollHeight;
-    }, i * 450);
+    }, i * 420);
   });
 }
 
@@ -237,5 +261,6 @@ function show(id){
   document.getElementById(id).classList.add("active");
 }
 </script>
+
 </body>
 </html>
