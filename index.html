@@ -48,6 +48,10 @@ button{
 }
 @keyframes pop{to{opacity:1;transform:translateY(0)}}
 .small{opacity:.75;font-size:.95rem}
+.error{
+  background:#3a1530;
+  border:1px solid rgba(255,255,255,.12);
+}
 </style>
 </head>
 
@@ -59,11 +63,11 @@ button{
     <h1>School GPS</h1>
     <div class="creators">by Albert Ilas & Manny Parris</div>
 
-    <input id="classInput" placeholder="Enter class (A101, C214, F115, G104)" />
+    <input id="classInput" placeholder="Enter class (A108, C115, F112, G106, A214)" />
     <button onclick="start()">Find Class</button>
 
     <div class="small" style="margin-top:12px;">
-      Format: Letter + 3 digits (example: F114)
+      Format: Letter + 3 digits (example: F112)
     </div>
   </div>
 </div>
@@ -88,32 +92,35 @@ button{
 
 <script>
 /*
-Room validity based on the maps you sent (100 & 200).
-Only A, B, C, E, F, G (no field house).
+VALID ROOMS pulled from your 100 + 200 maps.
+If not in these lists -> ERROR INVALID ROOM
+Allowed letters: A, B, C, E, F, G (D is treated as F)
+No field house stuff.
 */
+
 const VALID = {
-  1: { // 100-level
-    A: { ranges: [[100,116]] },
-    B: { ranges: [[100,121]] },
-    C: { ranges: [[100,116]] },
-    E: { list: [101,103,104,105,106,107] }, // from map
-    F: { ranges: [[101,115]] },
-    G: { ranges: [[101,107]] },
+  1: { // 100 level
+    A: new Set([101,102,103,104,105,106,107,108,111,112,114,115,116]),
+    B: new Set([100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,117,118,119,120,121]),
+    C: new Set([100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116]),
+    E: new Set([101,102,103,104,105,106,107]),
+    F: new Set([101,102,104,105,106,110,111,112,113,114,115]),
+    G: new Set([101,102,104,105,106,107])
   },
-  2: { // 200-level
-    A: { ranges: [[200,216]] },
-    B: { ranges: [[200,221]] },
-    C: { ranges: [[200,215]] },
-    E: { ranges: [[200,217]] },
-    // F/G not shown on the 200 map you sent -> treated invalid for now
+  2: { // 200 level
+    A: new Set([200,201,202,203,204,205,206,207,208,209,211,212,214,215,216]),
+    B: new Set([200,201,202,204,206,207,208,209,210,211,212,213,215,216,217,218,219,220,221]),
+    C: new Set([200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215]),
+    E: new Set([200,202,204,206,207,208,209,210,211,212,213,214,215,217])
+    // F / G not shown on your 200 map -> treated invalid
   }
 };
 
 const tips = [
-  "Starting at the Main Entrance",
-  "Head toward the Atrium first",
-  "Then go to your letter section",
-  "Follow the room numbers in that hall"
+  "Start at the Main Entrance",
+  "Walk straight until you reach the Atrium",
+  "Go right for Clinic / F",
+  "Follow room numbers in the hall"
 ];
 
 let tipTimer;
@@ -129,7 +136,7 @@ function start(){
     clearInterval(tipTimer);
     buildDirections(info);
     show("results");
-  }, 1600);
+  }, 1500);
 }
 
 function parseRoom(raw){
@@ -141,7 +148,9 @@ function parseRoom(raw){
   const num = parseInt(numStr, 10);
   const level = parseInt(numStr[0], 10);
 
-  if(letter === "D") letter = "F"; // your change: D -> F
+  // D -> F (your change)
+  if(letter === "D") letter = "F";
+
   const allowed = new Set(["A","B","C","E","F","G"]);
   if(!allowed.has(letter)) return { ok:false };
 
@@ -152,77 +161,70 @@ function parseRoom(raw){
 function roomExists(letter, num, level){
   const levelData = VALID[level];
   if(!levelData) return false;
-
   const sec = levelData[letter];
   if(!sec) return false;
-
-  if(sec.list){
-    return sec.list.includes(num);
-  }
-  if(sec.ranges){
-    return sec.ranges.some(([a,b]) => num >= a && num <= b);
-  }
-  return false;
+  return sec.has(num);
 }
 
 function buildDirections(info){
   const steps = [];
+  const box = document.getElementById("directions");
+  box.innerHTML = "";
 
   if(!info.ok){
-    renderStepsOneByOne(["ERROR INVALID ROOM"]);
+    renderStepsOneByOne(["ERROR INVALID ROOM"], true);
     return;
   }
 
-  // Common start (your wording: walk ALL the way down, then pass atrium + double doors)
+  // COMMON START (clear straight walking)
   steps.push("Start at the Main Entrance.");
   steps.push("Turn left into the main hallway.");
-  steps.push("Walk all the way down the main hall toward the Atrium.");
-  steps.push("Pass the Atrium, then continue past the double doors.");
+  steps.push("Walk straight down the main hall until you reach the Atrium.");
+  steps.push("Keep walking straight past the Atrium and go through the double doors right after it.");
 
-  // Only mention level if they must change level
-  if(info.level !== 1){
-    steps.push(`Go up to level ${info.level} using the stairs/elevator by the Atrium.`);
-    steps.push("On that level, come back to the Atrium area as your starting point.");
+  // ONLY mention level if 200-level
+  if(info.level === 2){
+    steps.push("Go up one level using the stairs/elevator near the Atrium.");
+    steps.push("When you get upstairs, head to the center intersection of the hallways.");
   }
 
-  // Map-based section routing + explicit “passing halls”
   const L = info.letter;
 
+  // 100/200 A/B/C are arranged around the central area on your maps.
+  // These are written to match the map “shape” (left wing, top wing, right wing).
   if(L === "A"){
-    steps.push("From the Atrium: go LEFT into the A section.");
-    steps.push("Stay in the A halls and follow the A room numbers.");
+    steps.push("From the center area: go LEFT into the A wing.");
+    steps.push("Stay in the A hallway and follow the room numbers.");
   }
 
   if(L === "B"){
-    steps.push("From the Atrium: go STRAIGHT toward the B section.");
-    steps.push("Pass the A section entrance if you see it, keep going straight.");
-    steps.push("Enter the B halls and follow the B room numbers.");
+    steps.push("From the center area: go STRAIGHT toward the B wing (top side).");
+    steps.push("Stay in the B hallway and follow the room numbers.");
   }
 
   if(L === "C"){
-    steps.push("From the Atrium: go RIGHT toward the C side.");
-    steps.push("Pass the B area/center halls and keep following the right-side corridor.");
-    steps.push("Enter the C halls and follow the C room numbers.");
+    steps.push("From the center area: go RIGHT into the C wing.");
+    steps.push("Stay in the C hallway and follow the room numbers.");
   }
 
+  // E exists on both maps, placed below/near the center block.
   if(L === "E"){
-    steps.push("From the Atrium: head toward ENGINEERING / E.");
-    steps.push("Pass the C entrance if you see it, keep going toward Engineering.");
-    steps.push("Enter the E halls and follow the E room numbers.");
+    steps.push("From the center area: go DOWN toward the E section.");
+    steps.push("Stay in the E hallway and follow the room numbers.");
   }
 
+  // F/G only valid on 100 per your maps.
   if(L === "F"){
-    steps.push("From the Atrium: go RIGHT toward the CLINIC side.");
-    steps.push("Pass the C halls (keep going along the right-side corridor).");
-    steps.push("Continue until you are clearly in the F hall area.");
-    steps.push("Follow the F room numbers.");
+    steps.push("From the Atrium/center area: go RIGHT toward the Clinic side.");
+    steps.push("Pass the C wing entrance (do not turn into C). Keep going along the right side.");
+    steps.push("When you reach the Clinic area, you are in the F hall area.");
+    steps.push("Stay in the F hallway and follow the room numbers.");
   }
 
   if(L === "G"){
-    steps.push("From the Atrium: head toward the CAFETERIA.");
-    steps.push("Pass the right-side halls on the way (C/F area).");
-    steps.push("Keep going toward the GYM side.");
-    steps.push("Enter the G section halls and follow the G room numbers.");
+    steps.push("From the Atrium/center area: head toward the Cafeteria.");
+    steps.push("Keep going toward the Gym side.");
+    steps.push("Enter the G hallway near the Gym and follow the room numbers.");
   }
 
   steps.push(`Stop at room ${info.room}.`);
@@ -230,13 +232,13 @@ function buildDirections(info){
   renderStepsOneByOne(steps);
 }
 
-function renderStepsOneByOne(steps){
+function renderStepsOneByOne(steps, isError=false){
   const box = document.getElementById("directions");
   box.innerHTML = "";
   steps.forEach((text, i)=>{
     setTimeout(()=>{
       const div = document.createElement("div");
-      div.className = "step";
+      div.className = "step" + (isError ? " error" : "");
       div.textContent = text;
       box.appendChild(div);
       box.scrollTop = box.scrollHeight;
@@ -251,7 +253,7 @@ function cycleTips(){
   tipTimer = setInterval(()=>{
     i = (i + 1) % tips.length;
     tipEl.textContent = tips[i];
-  }, 900);
+  }, 850);
 }
 
 function back(){ show("search"); }
