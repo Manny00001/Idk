@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>School GPS</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <style>
 *{box-sizing:border-box}
@@ -40,6 +40,7 @@ button{
 }
 @keyframes pop{to{opacity:1;transform:translateY(0)}}
 .error{background:#3a1530}
+.small{opacity:.75;font-size:.95rem}
 </style>
 </head>
 
@@ -50,8 +51,9 @@ button{
   <div class="card">
     <h1>School GPS</h1>
     <div class="creators">by Albert Ilas & Manny Parris</div>
-    <input id="roomInput" placeholder="Enter room (A108, D113, F115, G106, A214)">
+    <input id="roomInput" placeholder="Enter room (A108, D113, F115, B203, B205, A214)" />
     <button onclick="start()">Find Room</button>
+    <div class="small" style="margin-top:12px;">Format: Letter + 3 digits (example: B205)</div>
   </div>
 </div>
 
@@ -60,101 +62,123 @@ button{
   <div class="card" style="text-align:center">
     <div style="font-weight:900;letter-spacing:2px">CALCULATING ROUTE…</div>
     <div class="spinner"></div>
-    <div style="opacity:.7">Starting at the Main Entrance</div>
+    <div class="small">Starting at the Main Entrance</div>
   </div>
 </div>
 
 <!-- RESULTS -->
 <div class="screen" id="results">
   <div class="card">
-    <h2>Directions</h2>
+    <h2 style="margin:0 0 10px;">Directions</h2>
     <div class="results" id="steps"></div>
     <button onclick="goBack()">Back</button>
   </div>
 </div>
 
 <script>
+/*
+STRICT VALID ROOMS (from YOUR maps)
+If not listed -> ERROR INVALID ROOM
+*/
+
 const VALID = {
-  1:{
-    A:[101,102,103,104,105,106,107,108,111,112,114,115,116],
-    B:[100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,117,118,119,120,121],
-    C:[100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116],
-    D:[101,102,103,104,105,106,107,108,109,110,111,112,113],
-    F:[101,102,104,105,106,110,111,112,113,114,115],
-    G:[101,102,104,105,106,107]
+  1: { // 100 map
+    A: new Set([101,102,103,104,105,106,107,108,111,112,114,115,116]),
+    B: new Set([100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,117,118,119,120,121]),
+    C: new Set([100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116]),
+    D: new Set([101,102,103,104,105,106,107,108,109,110,111,112,113]),
+    F: new Set([101,102,104,105,106,110,111,112,113,114,115]),
+    G: new Set([101,102,104,105,106,107])
   },
-  2:{
-    A:[200,201,202,203,204,205,206,207,208,209,211,212,214,215,216],
-    B:[200,201,202,204,206,207,208,209,210,211,212,213,215,216,217,218,219,220,221],
-    C:[200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215],
-    D:[200,201,202,203,204,205,206,207,208],
-    E:[200,202,204,206,207,208,209,210,211,212,213,214,215,217]
+  2: { // 200 map
+    A: new Set([200,201,202,203,204,205,206,207,208,209,211,212,214,215,216]),
+    // FIXED: includes B203 and B205 (and other visible ones)
+    B: new Set([200,201,202,203,204,205,206,207,209,210,211,212,213,215,216,217,218,219,220,221]),
+    C: new Set([200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215]),
+    D: new Set([200,201,202,203,204,205,206,207,208]),
+    E: new Set([200,202,204,206,207,208,209,210,211,212,213,214,215,217])
   }
 };
 
 function start(){
-  const raw=document.getElementById("roomInput").value.trim().toUpperCase();
+  const raw = document.getElementById("roomInput").value.trim().toUpperCase();
   show("loading");
-  setTimeout(()=>{ build(raw); show("results"); },1200);
+  setTimeout(()=>{ build(raw); show("results"); }, 1100);
 }
 
 function build(raw){
-  const box=document.getElementById("steps");
-  box.innerHTML="";
-  const m=raw.match(/^([A-Z])([0-9]{3})$/);
+  const box = document.getElementById("steps");
+  box.innerHTML = "";
+
+  const m = raw.match(/^([A-Z])\s*[-]?\s*([0-9]{3})$/);
   if(!m) return error();
 
-  const letter=m[1];
-  const num=parseInt(m[2],10);
-  const level=parseInt(m[2][0],10);
+  const letter = m[1];
+  const numStr = m[2];
+  const num = parseInt(numStr, 10);
+  const level = parseInt(numStr[0], 10);
 
-  if(!VALID[level]||!VALID[level][letter]||!VALID[level][letter].includes(num))
+  if(!VALID[level] || !VALID[level][letter] || !VALID[level][letter].has(num)){
     return error();
+  }
 
-  const s=[];
+  const s = [];
 
-  s.push("Start at the Main Entrance.");
-  s.push("Turn left into the main hallway.");
-  s.push("Walk straight down the main hall until you reach the Atrium.");
-  s.push("Keep walking straight and go through the double doors past the Atrium.");
+  // BASE START
+  s.push("Walk in through the Main Entrance.");
+  s.push("Turn left.");
 
-  if(level===2){
-    s.push("Right after the doors, turn left and go through the next set of double doors.");
+  // IMPORTANT: upstairs route is DIFFERENT (your instruction)
+  if(level === 2){
+    s.push("Take the first left — it’s the staircase door.");
     s.push("Go up the stairs.");
-    s.push("At the top, you’ll be on the second floor in the E hallway.");
-    s.push("Use the Atrium balcony as your checkpoint.");
+    s.push("When you come out upstairs, you’re in the E hallway.");
+    s.push("Walk until you reach the Atrium balcony (that’s your checkpoint).");
+  } else {
+    // 100-level route
+    s.push("As soon as you turn left, go through the double doors.");
+    s.push("Keep walking straight down the main hall.");
+    s.push("Pass the Atrium — don’t turn — just keep going straight.");
   }
 
-  if(letter==="A") s.push("From the checkpoint, turn left into the A hallway.");
-  if(letter==="B") s.push("From the checkpoint, walk straight into the B hallway.");
-  if(letter==="C") s.push("From the checkpoint, turn right into the C hallway.");
-  if(letter==="D") s.push("From the checkpoint, head slightly right into the D hallway.");
-  if(letter==="F"){
-    s.push("From the checkpoint, go right toward the Clinic side.");
-    s.push("Pass the C and D hallway entrances and keep going.");
+  // FROM CHECKPOINT / CENTER: hall routing (human + simple)
+  if(letter === "A") s.push("From the checkpoint area, go left into the A hallway.");
+  if(letter === "B") s.push("From the checkpoint area, go straight toward the B hallway.");
+  if(letter === "C") s.push("From the checkpoint area, go right into the C hallway.");
+  if(letter === "D") s.push("From the checkpoint area, head into the D hallway (separate from F).");
+  if(letter === "E") s.push("You’re already in E — stay in the E hallway and follow the numbers.");
+  if(letter === "F") {
+    s.push("Go toward the Clinic side.");
+    s.push("Pass the C and D entrances — keep going until you’re in the F hallway.");
   }
-  if(letter==="G"){
-    s.push("From the checkpoint, head toward the Cafeteria.");
-    s.push("Continue walking toward the Gym side.");
+  if(letter === "G") {
+    s.push("Head toward the Cafeteria.");
+    s.push("Keep going toward the Gym side until you reach the G hallway.");
   }
 
-  s.push(`Follow the ${letter} hallway room numbers.`);
-  s.push(`Stop at room ${raw}.`);
+  s.push(`Follow the ${letter} room numbers until you hit ${raw}.`);
+  s.push(`You made it: ${raw}.`);
 
-  s.forEach((t,i)=>setTimeout(()=>{
-    const d=document.createElement("div");
-    d.className="step";
-    d.textContent=t;
+  renderSteps(s);
+}
+
+function renderSteps(steps){
+  const box = document.getElementById("steps");
+  box.innerHTML = "";
+  steps.forEach((t,i)=>setTimeout(()=>{
+    const d = document.createElement("div");
+    d.className = "step";
+    d.textContent = t;
     box.appendChild(d);
-    box.scrollTop=box.scrollHeight;
-  },i*420));
+    box.scrollTop = box.scrollHeight;
+  }, i*420));
 }
 
 function error(){
-  const box=document.getElementById("steps");
-  const d=document.createElement("div");
-  d.className="step error";
-  d.textContent="ERROR INVALID ROOM";
+  const box = document.getElementById("steps");
+  const d = document.createElement("div");
+  d.className = "step error";
+  d.textContent = "ERROR INVALID ROOM";
   box.appendChild(d);
 }
 
@@ -162,7 +186,7 @@ function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
-function goBack(){show("search")}
+function goBack(){ show("search"); }
 </script>
 
 </body>
