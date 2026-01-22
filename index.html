@@ -1,46 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>School GPS</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,sans-serif;background:#050b1f;color:#eaf2ff}
+body{
+  margin:0;
+  font-family:system-ui,sans-serif;
+  background:#050b1f;
+  color:#eaf2ff
+}
 .screen{min-height:100vh;display:none;align-items:center;justify-content:center}
 .screen.active{display:flex}
 .card{
-  width:92%;max-width:560px;padding:40px;border-radius:24px;
+  width:92%;
+  max-width:560px;
+  padding:36px;
+  border-radius:24px;
   background:linear-gradient(180deg,#0b1a3a,#08142e);
   box-shadow:0 30px 80px rgba(0,0,0,.6)
 }
 h1{text-align:center;font-size:3rem;margin:0}
-.creators{text-align:center;opacity:.7;margin:10px 0 28px}
+.creators{text-align:center;opacity:.7;margin:10px 0 18px}
+
 input{
-  width:100%;padding:16px;border-radius:14px;border:none;
-  background:#0e224f;color:#eaf2ff;font-size:1.05rem
+  width:100%;
+  padding:16px;
+  border-radius:14px;
+  border:none;
+  background:#0e224f;
+  color:#eaf2ff;
+  font-size:1.05rem
 }
 button{
-  width:100%;padding:16px;margin-top:14px;border-radius:16px;border:none;
-  font-weight:800;font-size:1.1rem;cursor:pointer;
-  background:linear-gradient(135deg,#1f4fff,#3a7bff);color:white
+  width:100%;
+  padding:16px;
+  margin-top:14px;
+  border-radius:16px;
+  border:none;
+  font-weight:800;
+  font-size:1.1rem;
+  cursor:pointer;
+  background:linear-gradient(135deg,#1f4fff,#3a7bff);
+  color:white
 }
+
+.tabs{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:center;
+  margin:14px 0
+}
+.tabs button{
+  width:auto;
+  padding:10px 14px;
+  border-radius:999px;
+  background:#10255a;
+  font-weight:700
+}
+
 .spinner{
-  width:70px;height:70px;border:6px solid rgba(255,255,255,.2);
-  border-top-color:#4da3ff;border-radius:50%;
-  animation:spin 1s linear infinite;margin:26px auto
+  width:70px;height:70px;
+  border:6px solid rgba(255,255,255,.2);
+  border-top-color:#4da3ff;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:26px auto
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+
 .results{max-height:60vh;overflow:auto;margin-top:10px}
 .step{
-  background:#0e224f;padding:14px 18px;border-radius:999px;
-  margin:10px 0;opacity:0;transform:translateY(10px);
+  background:#0e224f;
+  padding:14px 18px;
+  border-radius:999px;
+  margin:10px 0;
+  opacity:0;
+  transform:translateY(10px);
   animation:pop .35s ease forwards
 }
 @keyframes pop{to{opacity:1;transform:translateY(0)}}
 .error{background:#3a1530}
-.small{opacity:.75;font-size:.95rem}
 </style>
 </head>
 
@@ -50,135 +94,137 @@ button{
 <div class="screen active" id="search">
   <div class="card">
     <h1>School GPS</h1>
-    <div class="creators">by Albert Ilas & Manny Parris</div>
-    <input id="roomInput" placeholder="Enter room (A108, D113, F115, B203, B205, A214)" />
+    <div class="creators">by Albert Ilas and Manny Parris</div>
+
+    <div class="tabs">
+      <button onclick="quick('FRONT OFFICE')">Front Office</button>
+      <button onclick="quick('ATRIUM')">Atrium</button>
+      <button onclick="quick('CAFETERIA')">Cafeteria</button>
+      <button onclick="quick('MEDIA')">Media Center</button>
+      <button onclick="quick('CLINIC')">Clinic</button>
+      <button onclick="quick('COUNSELING')">Counseling</button>
+      <button onclick="quick('CURRICULUM')">Curriculum Office</button>
+    </div>
+
+    <input id="roomInput" placeholder="Enter room A108 B205 D113" />
     <button onclick="start()">Find Room</button>
-    <div class="small" style="margin-top:12px;">Format: Letter + 3 digits (example: B205)</div>
   </div>
 </div>
 
 <!-- LOADING -->
 <div class="screen" id="loading">
   <div class="card" style="text-align:center">
-    <div style="font-weight:900;letter-spacing:2px">CALCULATING ROUTE…</div>
+    <div style="font-weight:900;letter-spacing:2px">CALCULATING ROUTE</div>
     <div class="spinner"></div>
-    <div class="small">Starting at the Main Entrance</div>
+    <div style="opacity:.7">Starting at the Main Entrance</div>
   </div>
 </div>
 
 <!-- RESULTS -->
 <div class="screen" id="results">
   <div class="card">
-    <h2 style="margin:0 0 10px;">Directions</h2>
+    <h2 style="margin:0 0 10px">Directions</h2>
     <div class="results" id="steps"></div>
-    <button onclick="goBack()">Back</button>
+    <button onclick="show('search')">Back</button>
   </div>
 </div>
 
 <script>
-/*
-STRICT VALID ROOMS (from YOUR maps)
-If not listed -> ERROR INVALID ROOM
-*/
-
 const VALID = {
-  1: { // 100 map
-    A: new Set([101,102,103,104,105,106,107,108,111,112,114,115,116]),
-    B: new Set([100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,117,118,119,120,121]),
-    C: new Set([100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116]),
-    D: new Set([101,102,103,104,105,106,107,108,109,110,111,112,113]),
-    F: new Set([101,102,104,105,106,110,111,112,113,114,115]),
-    G: new Set([101,102,104,105,106,107])
-  },
-  2: { // 200 map
-    A: new Set([200,201,202,203,204,205,206,207,208,209,211,212,214,215,216]),
-    // FIXED: includes B203 and B205 (and other visible ones)
-    B: new Set([200,201,202,203,204,205,206,207,209,210,211,212,213,215,216,217,218,219,220,221]),
-    C: new Set([200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215]),
-    D: new Set([200,201,202,203,204,205,206,207,208]),
-    E: new Set([200,202,204,206,207,208,209,210,211,212,213,214,215,217])
-  }
+  1:{A:[101,102,103,104,105,106,107,108,111,112,114,115,116],
+     B:[100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,117,118,119,120,121],
+     C:[100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116],
+     D:[101,102,103,104,105,106,107,108,109,110,111,112,113],
+     F:[101,102,104,105,106,110,111,112,113,114,115],
+     G:[101,102,104,105,106,107]},
+  2:{A:[200,201,202,203,204,205,206,207,208,209,211,212,214,215,216],
+     B:[200,201,202,203,204,205,206,207,209,210,211,212,213,215,216,217,218,219,220,221],
+     C:[200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215],
+     D:[200,201,202,203,204,205,206,207,208],
+     E:[200,202,204,206,207,208,209,210,211,212,213,214,215,217]}
 };
 
 function start(){
-  const raw = document.getElementById("roomInput").value.trim().toUpperCase();
+  const raw=document.getElementById("roomInput").value.trim().toUpperCase();
   show("loading");
-  setTimeout(()=>{ build(raw); show("results"); }, 1100);
+  setTimeout(()=>build(raw),900);
 }
 
 function build(raw){
-  const box = document.getElementById("steps");
-  box.innerHTML = "";
-
-  const m = raw.match(/^([A-Z])\s*[-]?\s*([0-9]{3})$/);
+  const box=document.getElementById("steps");
+  box.innerHTML="";
+  const m=raw.match(/^([A-Z])\s*([0-9]{3})$/);
   if(!m) return error();
 
-  const letter = m[1];
-  const numStr = m[2];
-  const num = parseInt(numStr, 10);
-  const level = parseInt(numStr[0], 10);
+  const L=m[1], N=parseInt(m[2]), level=parseInt(m[2][0]);
+  if(!VALID[level]||!VALID[level][L]||!VALID[level][L].includes(N)) return error();
 
-  if(!VALID[level] || !VALID[level][letter] || !VALID[level][letter].has(num)){
-    return error();
+  const s=[];
+  s.push("Walk in through the Main Entrance");
+  s.push("Turn left");
+
+  if(level===2){
+    s.push("Take the first left staircase door");
+    s.push("Go up the stairs");
+    s.push("At the top you are in the E hallway");
+    s.push("Walk to the Atrium balcony");
+    s.push("At the double doors turn right");
+    s.push("Walk past the balcony");
+    s.push("Take the first left this is the C hallway");
+  }else{
+    s.push("Go through the double doors");
+    s.push("Walk straight past the Atrium");
   }
 
-  const s = [];
+  if(L==="A") s.push("Turn left into the A hallway");
+  if(L==="B") s.push("Go straight into the B hallway");
+  if(L==="C") s.push("Turn left into the C hallway");
+  if(L==="D") s.push("Turn right into the D hallway");
+  if(L==="E") s.push("Stay in the E hallway");
+  if(L==="F") s.push("Continue past the Clinic into the F hallway");
+  if(L==="G") s.push("Head toward the Cafeteria and Gym area");
 
-  // BASE START
-  s.push("Walk in through the Main Entrance.");
-  s.push("Turn left.");
+  s.push("Follow the room numbers until you reach "+raw);
+  s.push("You have arrived");
 
-  // IMPORTANT: upstairs route is DIFFERENT (your instruction)
-  if(level === 2){
-    s.push("Take the first left — it’s the staircase door.");
-    s.push("Go up the stairs.");
-    s.push("When you come out upstairs, you’re in the E hallway.");
-    s.push("Walk until you reach the Atrium balcony (that’s your checkpoint).");
-  } else {
-    // 100-level route
-    s.push("As soon as you turn left, go through the double doors.");
-    s.push("Keep walking straight down the main hall.");
-    s.push("Pass the Atrium — don’t turn — just keep going straight.");
-  }
-
-  // FROM CHECKPOINT / CENTER: hall routing (human + simple)
-  if(letter === "A") s.push("From the checkpoint area, go left into the A hallway.");
-  if(letter === "B") s.push("From the checkpoint area, go straight toward the B hallway.");
-  if(letter === "C") s.push("From the checkpoint area, go right into the C hallway.");
-  if(letter === "D") s.push("From the checkpoint area, head into the D hallway (separate from F).");
-  if(letter === "E") s.push("You’re already in E — stay in the E hallway and follow the numbers.");
-  if(letter === "F") {
-    s.push("Go toward the Clinic side.");
-    s.push("Pass the C and D entrances — keep going until you’re in the F hallway.");
-  }
-  if(letter === "G") {
-    s.push("Head toward the Cafeteria.");
-    s.push("Keep going toward the Gym side until you reach the G hallway.");
-  }
-
-  s.push(`Follow the ${letter} room numbers until you hit ${raw}.`);
-  s.push(`You made it: ${raw}.`);
-
-  renderSteps(s);
+  render(s);
 }
 
-function renderSteps(steps){
-  const box = document.getElementById("steps");
-  box.innerHTML = "";
-  steps.forEach((t,i)=>setTimeout(()=>{
-    const d = document.createElement("div");
-    d.className = "step";
-    d.textContent = t;
+function quick(place){
+  show("loading");
+  setTimeout(()=>{
+    const s=["Walk in through the Main Entrance","Turn left"];
+    if(place==="FRONT OFFICE") s.push("The Front Office is immediately on your left");
+    if(place==="ATRIUM") s.push("Walk straight until you reach the Atrium");
+    if(place==="CAFETERIA") s.push("Continue straight into the Cafeteria");
+    if(place==="MEDIA") s.push("Turn left into the Media Center");
+    if(place==="CLINIC") s.push("Walk toward the Clinic near F hallway");
+    if(place==="COUNSELING") s.push("Proceed to the Counseling offices");
+    if(place==="CURRICULUM") s.push("Go to the Curriculum Office near Administration");
+    s.push("You have arrived");
+    render(s);
+  },700);
+}
+
+function render(arr){
+  show("results");
+  const box=document.getElementById("steps");
+  box.innerHTML="";
+  arr.forEach((t,i)=>setTimeout(()=>{
+    const d=document.createElement("div");
+    d.className="step";
+    d.textContent=t;
     box.appendChild(d);
-    box.scrollTop = box.scrollHeight;
-  }, i*420));
+  },i*420));
 }
 
 function error(){
-  const box = document.getElementById("steps");
-  const d = document.createElement("div");
-  d.className = "step error";
-  d.textContent = "ERROR INVALID ROOM";
+  show("results");
+  const box=document.getElementById("steps");
+  box.innerHTML="";
+  const d=document.createElement("div");
+  d.className="step error";
+  d.textContent="ERROR INVALID ROOM";
   box.appendChild(d);
 }
 
@@ -186,7 +232,6 @@ function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
-function goBack(){ show("search"); }
 </script>
 
 </body>
